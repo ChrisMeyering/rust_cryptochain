@@ -7,12 +7,12 @@ const DIFFICULTY_MAX: usize = 256;
 const DIFFICULTY_MIN: usize = 4;
 #[derive(Debug)]
 pub struct Block {
-    timestamp: SystemTime,
-    last_hash: String,
-    hash: String,
-    data: String,
-    nonce: usize,
-    difficulty: usize,
+    pub timestamp: SystemTime,
+    pub last_hash: String,
+    pub hash: String,
+    pub data: String,
+    pub nonce: usize,
+    pub difficulty: usize,
 }
 
 impl Block {
