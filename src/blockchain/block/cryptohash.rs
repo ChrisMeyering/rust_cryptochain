@@ -11,19 +11,15 @@ pub fn is_valid_hash(hash: &String, difficulty: usize) -> bool {
     }
     let hex_digits_required = bits_required / 4;
     let sub_hash = &hash[..hex_digits_required];
-    match hex::decode(sub_hash) {
-        Ok(binary_bytes) => {
-            let mut leading_zeros = 0;
-            for byte in binary_bytes.iter() {
-                leading_zeros += byte.leading_zeros();
-                if byte != &(0 as u8) {
-                    break;
-                }
-            }
-            return difficulty <= leading_zeros as usize;
+    let binary_bytes = hex::decode(sub_hash).unwrap();
+    let mut leading_zeros = 0;
+    for byte in binary_bytes.iter() {
+        leading_zeros += byte.leading_zeros();
+        if byte != &(0 as u8) {
+            break;
         }
-        _ => return false,
     }
+    return difficulty <= leading_zeros as usize;
 }
 
 pub fn hash(
@@ -50,29 +46,28 @@ pub fn hash(
 }
 
 #[cfg(test)]
-mod test_is_valid_hash {
+mod is_valid_hash {
     use super::is_valid_hash;
 
     #[test]
     fn on_valid_hash() {
-        assert_eq!(is_valid_hash(&String::from("05".repeat(32)), 5), true);
+        assert!(is_valid_hash(&String::from("05".repeat(32)), 5));
     }
 
     #[test]
     fn on_wrong_length_hash() {
-        assert_eq!(is_valid_hash(&String::from("05".repeat(30)), 5), false);
+        assert!(!is_valid_hash(&String::from("05".repeat(30)), 5));
     }
 
     #[test]
     fn on_hash_with_insufficient_leading_zeros() {
-        assert_eq!(is_valid_hash(&String::from("05".repeat(30)), 6), false);
+        assert!(!is_valid_hash(&String::from("05".repeat(30)), 6));
     }
 }
 
 #[cfg(test)]
-mod test_hash {
-    use super::hash;
-    use std::time::SystemTime;
+mod hash {
+    use super::{hash, SystemTime};
 
     #[test]
     fn generates_sha256_hash() {
