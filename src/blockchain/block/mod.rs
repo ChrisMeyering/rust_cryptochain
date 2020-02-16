@@ -1,4 +1,4 @@
-mod cryptohash;
+pub mod cryptohash;
 
 use std::{cmp, time::SystemTime};
 
@@ -130,6 +130,19 @@ impl PartialEq for Block {
             && (self.last_hash == other.last_hash)
             && (self.difficulty == other.difficulty)
             && (self.nonce == other.nonce);
+    }
+}
+
+impl Clone for Block {
+    fn clone(&self) -> Block {
+        return Block {
+            timestamp: self.timestamp.clone(),
+            last_hash: self.last_hash.clone(),
+            hash: self.hash.clone(),
+            data: self.data.clone(),
+            nonce: self.nonce,
+            difficulty: self.difficulty
+        };
     }
 }
 
