@@ -1,46 +1,12 @@
-mod block;
+use crypt::cryptohash::hash;
 
-use block::Block;
+use crate::{
+    block::Block,
+    blockchain::Blockchain
+};
 
-pub struct Blockchain {
-    pub chain: Vec<Block>,
-}
-
-impl Blockchain {
-    pub fn new() -> Blockchain {
-        Blockchain {
-            chain: vec![Block::genesis()],
-        }
-    }
-
-    pub fn add_block(&mut self, data: String) {
-        let new_block = Block::mine_block(&self.chain[self.chain.len() - 1], data);
-        self.chain.push(new_block);
-    }
-
-    pub fn is_valid_chain(chain: &Vec<Block>) -> bool {
-        if chain[0] != Block::genesis() {
-            return false;
-        }
-        for i in 1..chain.len() {
-            if !Block::is_valid_block(&chain[i], &chain[i - 1].hash, chain[i - 1].difficulty) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    pub fn replace_chain(&mut self, new_chain: Vec<Block>) {
-        if new_chain.len() > self.chain.len() && Blockchain::is_valid_chain(&new_chain) {
-            self.chain = new_chain;
-        }
-    }
-}
-
-#[cfg(test)]
 mod blockchain_struct_data {
-    use super::{Block, Blockchain};
-
+    use super::*;
     #[test]
     fn new_initializes_chain_properly() {
         let blockchain = Blockchain::new();
@@ -48,10 +14,8 @@ mod blockchain_struct_data {
     }
 }
 
-#[cfg(test)]
 mod add_block {
-    use super::{Block, Blockchain};
-
+    use super::*;
     #[test]
     fn adds_a_new_block_to_the_chain() {
         let mut blockchain = Blockchain::new();
@@ -75,9 +39,8 @@ mod add_block {
     }
 }
 
-#[cfg(test)]
 mod is_valid_chain {
-    use super::{Blockchain, Block, block::cryptohash};
+    use super::*;
 
     fn setup() -> Blockchain {
         let mut blockchain = Blockchain::new();
@@ -109,14 +72,14 @@ mod is_valid_chain {
         let last_hash = blockchain.chain[blockchain.chain.len() - 1].hash.clone();
         let nonce = 0;
         let difficulty = blockchain.chain[blockchain.chain.len() - 1].difficulty + 3;
-        let hash = cryptohash::hash(&timestamp, &last_hash, &data, nonce, difficulty);
+        let hash = hash(&timestamp, &last_hash, &data, nonce, difficulty);
         blockchain.chain.push(Block {
             timestamp,
             last_hash,
             hash,
             data,
             nonce,
-            difficulty
+            difficulty,
         });
         assert!(!Blockchain::is_valid_chain(&blockchain.chain));
     }
@@ -136,14 +99,14 @@ mod is_valid_chain {
         let last_hash = blockchain.chain[blockchain.chain.len() - 1].hash.clone();
         let nonce = 0;
         let difficulty = blockchain.chain[blockchain.chain.len() - 1].difficulty + 1;
-        let hash = cryptohash::hash(&timestamp, &last_hash, &data, nonce, difficulty);
+        let hash = hash(&timestamp, &last_hash, &data, nonce, difficulty);
         blockchain.chain.push(Block {
             timestamp,
             last_hash,
             hash,
             data,
             nonce,
-            difficulty
+            difficulty,
         });
         assert!(!Blockchain::is_valid_chain(&blockchain.chain));
     }
@@ -156,7 +119,6 @@ mod is_valid_chain {
     }
 }
 
-#[cfg(test)]
 mod replace_chain {
     use super::Blockchain;
 
