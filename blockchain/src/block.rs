@@ -1,16 +1,14 @@
-use crypt::cryptohash;
+use crypto::cryptohash;
 
 use crate::config::*;
 
-use std::{cmp, time::SystemTime};
+use std::{cmp, collections::BTreeMap, time::SystemTime};
 
-
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Block {
     pub timestamp: SystemTime,
-    pub last_hash: String,
-    pub hash: String,
+    pub last_hash: [u8; 32],
+    pub hash: [u8; 32],
     pub data: String,
     pub nonce: usize,
     pub difficulty: usize,
@@ -20,8 +18,8 @@ impl Block {
     pub fn genesis() -> Block {
         Block {
             timestamp: SystemTime::UNIX_EPOCH,
-            last_hash: String::from("none"),
-            hash: String::from("genesis"),
+            last_hash: [0; 32],
+            hash: [255; 32],
             data: String::from("genesis block"),
             nonce: 0,
             difficulty: 8,
@@ -32,13 +30,16 @@ impl Block {
         let mut timestamp: SystemTime;
         let mut difficulty: usize;
         let mut nonce: usize = 0;
-        let last_hash: String = last_block.hash.clone();
-        let mut hash: String;
+        let last_hash: [u8; 32] = last_block.hash.clone();
+        let mut hash: [u8; 32] = [0; 32];
         loop {
             nonce += 1;
             timestamp = SystemTime::now();
             difficulty = Block::adjust_difficulty(&last_block, &timestamp);
-            hash = cryptohash::hash(&timestamp, &last_hash, &data, nonce, difficulty);
+            cryptohash::hash(
+                &Block::get_data_map(&timestamp, &last_hash, &data, nonce, difficulty),
+                &mut hash,
+            );
             if cryptohash::is_valid_hash(&hash, difficulty) {
                 break;
             }
@@ -95,7 +96,7 @@ impl Block {
 
     pub fn is_valid_block(
         block: &Block,
-        last_block_hash: &String,
+        last_block_hash: &[u8],
         last_block_difficulty: usize,
     ) -> bool {
         let Block {
@@ -112,27 +113,47 @@ impl Block {
         if !Block::is_valid_difficulty(last_block_difficulty, block.difficulty) {
             return false;
         }
-        if hash != &cryptohash::hash(timestamp, last_hash, data, *nonce, *difficulty) {
+        let mut expected_hash: [u8; 32] = [0; 32];
+        cryptohash::hash(
+            &Block::get_data_map(timestamp, last_hash, data, *nonce, *difficulty),
+            &mut expected_hash,
+        );
+        if hash != &expected_hash {
             return false;
         }
         if !cryptohash::is_valid_hash(hash, *difficulty) {
             return false;
         }
-
         return true;
     }
-}
 
-impl PartialEq for Block {
-    fn eq(&self, other: &Block) -> bool {
-        return (self.timestamp == other.timestamp)
-            && (self.data == other.data)
-            && (self.hash == other.hash)
-            && (self.last_hash == other.last_hash)
-            && (self.difficulty == other.difficulty)
-            && (self.nonce == other.nonce);
+    pub fn get_data_map(
+        timestamp: &SystemTime,
+        last_hash: &[u8; 32],
+        data: &String,
+        nonce: usize,
+        difficulty: usize,
+    ) -> BTreeMap<String, String> {
+        let mut data_map = BTreeMap::<String, String>::new();
+        data_map.insert("timestamp".to_string(), format!("{:?}", timestamp));
+        data_map.insert("last_hash".to_string(), format!("{:?}", last_hash));
+        data_map.insert("data".to_string(), format!("{:?}", data));
+        data_map.insert("nonce".to_string(), format!("{:?}", nonce));
+        data_map.insert("difficulty".to_string(), format!("{:?}", difficulty));
+        return data_map;
     }
 }
+
+// impl PartialEq for Block {
+//     fn eq(&self, other: &Block) -> bool {
+//         return (self.timestamp == other.timestamp)
+//             && (self.data == other.data)
+//             && (self.hash == other.hash)
+//             && (self.last_hash == other.last_hash)
+//             && (self.difficulty == other.difficulty)
+//             && (self.nonce == other.nonce);
+//     }
+// }
 
 impl Clone for Block {
     fn clone(&self) -> Block {

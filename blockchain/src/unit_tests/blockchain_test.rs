@@ -1,4 +1,4 @@
-use crypt::cryptohash::hash;
+use crypto::cryptohash;
 
 use crate::{
     block::Block,
@@ -60,7 +60,7 @@ mod is_valid_chain {
     #[test]
     fn false_if_a_last_hash_reference_has_changed() {
         let mut blockchain = setup();
-        blockchain.chain[2].last_hash = String::from("fake last_hash");
+        blockchain.chain[2].last_hash = [13; 32];
         assert!(!Blockchain::is_valid_chain(&blockchain.chain));
     }
 
@@ -72,7 +72,9 @@ mod is_valid_chain {
         let last_hash = blockchain.chain[blockchain.chain.len() - 1].hash.clone();
         let nonce = 0;
         let difficulty = blockchain.chain[blockchain.chain.len() - 1].difficulty + 3;
-        let hash = hash(&timestamp, &last_hash, &data, nonce, difficulty);
+        let mut data_map = Block::get_data_map(&timestamp, &last_hash, &data, nonce, difficulty); 
+        let mut hash: [u8; 32] = [13; 32];
+        cryptohash::hash(&data_map, &mut hash);
         blockchain.chain.push(Block {
             timestamp,
             last_hash,
@@ -99,7 +101,9 @@ mod is_valid_chain {
         let last_hash = blockchain.chain[blockchain.chain.len() - 1].hash.clone();
         let nonce = 0;
         let difficulty = blockchain.chain[blockchain.chain.len() - 1].difficulty + 1;
-        let hash = hash(&timestamp, &last_hash, &data, nonce, difficulty);
+        let data_map = Block::get_data_map(&timestamp, &last_hash, &data, nonce, difficulty);
+        let mut hash: [u8; 32] = [0; 32];
+        cryptohash::hash(&data_map, &mut hash);
         blockchain.chain.push(Block {
             timestamp,
             last_hash,

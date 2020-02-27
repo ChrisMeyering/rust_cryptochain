@@ -1,4 +1,4 @@
-use crypt::cryptohash::*;
+use crypto::cryptohash::*;
 
 use crate::{
     block::Block,
@@ -14,8 +14,8 @@ mod block_struct_data {
     #[test]
     fn struct_has_proper_fields() {
         let timestamp = SystemTime::now();
-        let last_hash = String::from("mockhash".repeat(16));
-        let hash = String::from("hashmock".repeat(16));
+        let last_hash: [u8; 32] = [0; 32];
+        let hash: [u8; 32] = [1; 32];
         let data = String::from("mock data");
         let nonce: usize = 128;
         let difficulty: usize = 0;
@@ -38,8 +38,8 @@ mod block_struct_data {
     #[test]
     fn genesis_creates_block_instance_with_expected_data() {
         let timestamp = SystemTime::UNIX_EPOCH;
-        let last_hash = String::from("none");
-        let hash = String::from("genesis");
+        let last_hash: [u8; 32] = [0; 32];
+        let hash: [u8; 32] = [255; 32];
         let data = String::from("genesis block");
         let nonce = 0;
         let difficulty = 8;
@@ -86,13 +86,15 @@ mod mine_block {
     #[test]
     fn sets_hash_based_on_input() {
         let (last_block, data, mined_block) = setup();
-        let expected_hash = hash(
+        let data_map = Block::get_data_map(
             &mined_block.timestamp,
             &last_block.hash,
             &data,
             mined_block.nonce,
-            mined_block.difficulty,
+            mined_block.difficulty
         );
+        let mut expected_hash: [u8; 32] = [0; 32];
+        hash(&data_map, &mut expected_hash);
         assert_eq!(mined_block.hash, expected_hash);
     }
 
@@ -283,7 +285,7 @@ mod is_valid_block {
         let mut last_block: Block =
             Block::mine_block(&Block::genesis(), String::from("dummy data 1"));
         let new_block = Block::mine_block(&last_block, String::from("dummy data 2"));
-        last_block.hash = String::from("tampered hash");
+        last_block.hash = [13; 32];
         assert!(!Block::is_valid_block(
             &new_block,
             &last_block.hash,
@@ -318,18 +320,19 @@ mod is_valid_block {
 
     #[test]
     fn false_if_new_block_hash_violates_difficulty_constraint() {
-        let last_block: Block = Block::mine_block(&Block::genesis(), String::from("dummy data 1"));
-
-        let timestamp: SystemTime = SystemTime::now();
-        let last_hash: String = last_block.hash.clone();
-        let data: String = String::from("dummy data 2");
+        let last_block: Block = Block::genesis();
+        let timestamp: SystemTime = SystemTime::UNIX_EPOCH;
+        let last_hash: [u8; 32] = last_block.hash.clone();
+        let data: String = String::from("dummy data!");
         let nonce: usize = 0;
         let difficulty: usize = last_block.difficulty + 1;
-        let hash = hash(&timestamp, &last_hash, &data, nonce, difficulty);
+        let data_map = Block::get_data_map(&timestamp, &last_hash, &data, nonce, difficulty);
+        let mut bad_hash: [u8; 32] = [0; 32];
+        hash(&data_map, &mut bad_hash);
         let new_block = Block {
             timestamp,
             last_hash: last_hash,
-            hash: hash.clone(),
+            hash: bad_hash.clone(),
             data: data.clone(),
             nonce,
             difficulty,
